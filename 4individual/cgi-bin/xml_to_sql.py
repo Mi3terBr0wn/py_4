@@ -1,10 +1,10 @@
 import cgitb
 import sqlite3
 
-from adapter import import_from_file
+from adapter import import_from_xml
 from db import init_db, sqlite_connection
 
-PATH = 'wines.xml'
+PATH = 'books.xml'
 
 cgitb.enable()
 init_db()
@@ -12,22 +12,21 @@ init_db()
 
 @sqlite_connection
 def xml_to_sql(con: sqlite3.Connection):
-    rows = import_from_file(PATH)
+    rows = import_from_xml(PATH)
     ins = []
     for row in rows:
         a = []
-        for value in row.values():
+        for value in row:
             try:
                 a.append(int(value))
             except ValueError:
                 a.append(value)
         ins.append(a)
-    # con.row_factory = sqlite3.Row
+    print(ins)
     cur = con.cursor()
     cur.executemany("""
-        INSERT INTO WINES (WINE_ID, WINE_EXTRACT, SWEETNESS_ID, WINE_GRADE_ID, COUNTRY_ID, DESCRIPTION) VALUES (?, ?, ?, ?, ?, ?);
+        INSERT INTO BOOKS (BOOK_ID, BOOK_NAME, AUTHOR_ID, GENRE_ID) VALUES (?, ?, ?, ?);
     """, ins)
-
 
 xml_to_sql()
 print("Content-type: text/html")
@@ -35,14 +34,13 @@ print(f'''
             <!DOCTYPE html>
             <html lang="ru">
                 <head>
-                    <title>БД</title>
+                    <title>База данных</title>
                     <meta charset="UTF-8">
-                    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
                 </head>
                 <body>
-                <h1>Импорт из xml файла в БД выполнен</h1><br>
-                <a class="btn btn-warning" href="../cgi-bin/get_db.py">На главную</a><br>
-                <a class="btn btn-success" href="../templates/index.html">На главную</a><br>
+                <h1>Импорт из xml файла в базу данных выполнен</h1><br>
+                <a href="../cgi-bin/get_db.py">Вернуться на главную</a><br>
+                <a href="../templates/index.html">Вернуться на главную</a><br>
         </body>
         </html>
 

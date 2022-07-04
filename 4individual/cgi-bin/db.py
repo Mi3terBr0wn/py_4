@@ -1,11 +1,6 @@
 import sqlite3
 from typing import Dict, List
 
-"""Тема таблиц вина"""
-# lxml строим xml из sql
-# а ещё тоже самое в джанго
-
-
 def sqlite_connection(func):
     def wrapper(*args, **kwargs):
         with sqlite3.connect('db.db') as con:
@@ -18,122 +13,84 @@ def sqlite_connection(func):
 
 @sqlite_connection
 def init_db(con: sqlite3.Connection):
-    """Создаём таблицу с id, цвет,  выдержкой, сортом, страной, описанием вина"""
     cur = con.cursor()
     cur.execute("""
-        CREATE TABLE IF NOT EXISTS WINE_GRADES (
-            WINE_GRADE_ID INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-            WINE_GRADE_NAME TEXT,
-            DESCRIPTION TEXT,
-            COLOR TEXT
+        CREATE TABLE IF NOT EXISTS GENRES (
+            GENRE_ID INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+            GENRE_NAME TEXT
         );""")
     cur.execute("""
-        CREATE TABLE IF NOT EXISTS COUNTRIES (
-            COUNTRY_ID INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-            COUNTRY_NAME TEXT
+        CREATE TABLE IF NOT EXISTS AUTHORS (
+            AUTHOR_ID INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+            AUTHOR_NAME TEXT
         );""")
     cur.execute("""
-        CREATE TABLE IF NOT EXISTS SWEETNESS (
-            SWEETNESS_ID INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-            SWEETNESS_NAME TEXT
+        CREATE TABLE IF NOT EXISTS BOOKS (
+            BOOK_ID INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+            BOOK_NAME TEXT,
+            AUTHOR_ID INTEGER,
+            GENRE_ID INTEGER,
+            FOREIGN KEY (AUTHOR_ID) REFERENCES AUTHORS(AUTHOR_ID),
+            FOREIGN KEY (GENRE_ID) REFERENCES GENRES(GENRE_ID)
         );""")
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS WINES (
-            WINE_ID INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-            WINE_EXTRACT INTEGER,
-            SWEETNESS_ID INTEGER NOT NULL,
-            WINE_GRADE_ID INTEGER NOT NULL,
-            COUNTRY_ID INTEGER NOT NULL,
-            DESCRIPTION TEXT,
-            FOREIGN KEY (SWEETNESS_ID) REFERENCES SWEETNESS(SWEETNESS_ID),
-            FOREIGN KEY (WINE_GRADE_ID) REFERENCES WINE_GRADES(WINE_GRADE_ID),
-            FOREIGN KEY (COUNTRY_ID) REFERENCES COUNTRIES(COUNTRY_ID)
-        );""")
-    cur.execute("INSERT INTO SWEETNESS (SWEETNESS_NAME) VALUES ('Сухое');")
-    cur.execute("INSERT INTO SWEETNESS (SWEETNESS_NAME) VALUES ('Полусладкое');")
-    cur.execute("INSERT INTO SWEETNESS (SWEETNESS_NAME) VALUES ('Сладкое');")
-    cur.execute("INSERT INTO COUNTRIES (COUNTRY_NAME) VALUES ('Россия');")
-    cur.execute("INSERT INTO COUNTRIES (COUNTRY_NAME) VALUES ('Франция');")
-    cur.execute("INSERT INTO WINE_GRADES (WINE_GRADE_NAME, DESCRIPTION, COLOR) VALUES ('Риоха', 'Какое-то крутое описание', 'Красное');")
-    cur.execute("INSERT INTO WINE_GRADES (WINE_GRADE_NAME, DESCRIPTION, COLOR) VALUES ('Каберне', 'Какое-то совсем крутое описание', 'Красное');")
-
+    cur.execute("INSERT INTO GENRES (GENRE_NAME) VALUES ('Комедия');")
+    cur.execute("INSERT INTO GENRES (GENRE_NAME) VALUES ('Трагедия');")
+    cur.execute("INSERT INTO GENRES (GENRE_NAME) VALUES ('Драма');")
+    cur.execute("INSERT INTO AUTHORS (AUTHOR_NAME) VALUES ('Чехов А.П.');")
+    cur.execute("INSERT INTO AUTHORS (AUTHOR_NAME) VALUES ('Толстой Л.Н.');")
 
 @sqlite_connection
-def get_all_wines(con: sqlite3.Connection) -> List:
+def get_all_books(con: sqlite3.Connection) -> List:
     cur = con.cursor()
     cur.execute('''
-        SELECT G.WINE_GRADE_NAME, G.COLOR, W.WINE_EXTRACT, S.SWEETNESS_NAME, C.COUNTRY_NAME, W.DESCRIPTION FROM WINES W
-        LEFT OUTER JOIN SWEETNESS S ON W.SWEETNESS_ID = S.SWEETNESS_ID
-        LEFT OUTER JOIN WINE_GRADES G ON W.WINE_GRADE_ID = G.WINE_GRADE_ID
-        LEFT OUTER JOIN COUNTRIES C ON C.COUNTRY_ID = W.COUNTRY_ID;
+        SELECT B.BOOK_NAME, A.AUTHOR_NAME, G.GENRE_NAME FROM BOOKS B
+        LEFT OUTER JOIN AUTHORS A ON B.AUTHOR_ID = A.AUTHOR_ID
+        LEFT OUTER JOIN GENRES G ON B.GENRE_ID = G.GENRE_ID;
     ''')
+    # cur.execute('select * from books;')
     return cur.fetchall()
 
 
 @sqlite_connection
-def get_all_countries(con: sqlite3.Connection) -> List:
+def get_all_genres(con: sqlite3.Connection) -> List:
     cur = con.cursor()
     cur.execute('''
-            SELECT * FROM COUNTRIES;
+            SELECT * FROM GENRES;
         ''')
     return cur.fetchall()
 
 
 @sqlite_connection
-def get_all_sweetness(con: sqlite3.Connection) -> List:
+def get_all_authors(con: sqlite3.Connection) -> List:
     cur = con.cursor()
     cur.execute('''
-            SELECT * FROM SWEETNESS;
+            SELECT * FROM AUTHORS;
         ''')
     return cur.fetchall()
 
 
 @sqlite_connection
-def get_all_wine_grades(con: sqlite3.Connection) -> List:
+def add_genre(con: sqlite3.Connection, name: str):
     cur = con.cursor()
     cur.execute('''
-                SELECT * FROM WINE_GRADES;
-            ''')
-    return cur.fetchall()
-
-
-@sqlite_connection
-def add_wine_grade(con: sqlite3.Connection, name: str, descr: str, color: str):
-    cur = con.cursor()
-    cur.execute('''
-        INSERT INTO WINE_GRADES (WINE_GRADE_NAME, DESCRIPTION, COLOR) VALUES (?, ?, ?);
-    ''', (name, descr, color))
-
-
-@sqlite_connection
-def add_country(con: sqlite3.Connection, name: str):
-    cur = con.cursor()
-    cur.execute('''
-        INSERT INTO COUNTRIES (COUNTRY_NAME) VALUES (?);
+        INSERT INTO GENRES (GENRE_NAME) VALUES (?);
     ''', (name,))
 
 
-def update_country(con: sqlite3.Connection, name: str, id: int):
+@sqlite_connection
+def add_author(con: sqlite3.Connection, name: str):
     cur = con.cursor()
     cur.execute('''
-        UPDATE COUNTRIES
-        SET country_name = (?)
-        WHERE COUNTRY_ID = (?)
-    ''', (name, id))
-
-
-def delete_country(con: sqlite3.Connection, id: int):
-    cur = con.cursor()
-    cur.execute('DELETE FROM COUNTRIES WHERE COUNTRY_ID = (?)', (id,))
+        INSERT INTO AUTHORS (AUTHOR_NAME) VALUES (?);
+    ''', (name,))
 
 
 @sqlite_connection
-def add_wine(con: sqlite3.Connection, extract: int, sweetness_id: int, wine_grade_id: int, country_id: int,
-             description: str):
+def add_book(con: sqlite3.Connection, book_name: str, author_id: int, genre_id: int):
     cur = con.cursor()
     cur.execute('''
-        INSERT INTO WINES (WINE_EXTRACT, SWEETNESS_ID, WINE_GRADE_ID, COUNTRY_ID, DESCRIPTION) VALUES (?, ?, ?, ?, ?);
-    ''', (extract, sweetness_id, wine_grade_id, country_id, description))
+        INSERT INTO BOOKS (BOOK_NAME, AUTHOR_ID, GENRE_ID) VALUES (?, ?, ?);
+    ''', (book_name, author_id, genre_id))
 
 
 if __name__ == '__main__':
